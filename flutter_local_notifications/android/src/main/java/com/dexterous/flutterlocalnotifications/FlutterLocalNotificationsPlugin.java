@@ -140,6 +140,20 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         initAndroidThreeTen(context);
         ArrayList<NotificationDetails> scheduledNotifications = loadScheduledNotifications(context);
         for (NotificationDetails scheduledNotification : scheduledNotifications) {
+            if(scheduledNotification.repeatInterval != null){
+                repeatNotification(context, scheduledNotification, false);
+            }
+            else if(scheduledNotification.millisecondsSinceEpoch != null){
+                if (scheduledNotification.timeZoneName == null) {
+                    scheduleNotification(context, scheduledNotification, false);
+                } else {
+                    zonedScheduleNotification(context, scheduledNotification, false);
+                }
+            }
+            else{
+                showNotification(context, scheduledNotification, false);
+            }
+            /*
             if (scheduledNotification.repeatInterval == null) {
                 if (scheduledNotification.timeZoneName == null) {
                     scheduleNotification(context, scheduledNotification, false);
@@ -149,6 +163,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
             } else {
                 repeatNotification(context, scheduledNotification, false);
             }
+            */
         }
     }
 
@@ -763,10 +778,13 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         return true;
     }
 
-    static void showNotification(Context context, NotificationDetails notificationDetails) {
+    static void showNotification(Context context, NotificationDetails notificationDetails, Boolean updateScheduledNotificationsCache) {
         Notification notification = createNotification(context, notificationDetails);
         NotificationManagerCompat notificationManagerCompat = getNotificationManager(context);
         notificationManagerCompat.notify(notificationDetails.id, notification);
+        if (updateScheduledNotificationsCache) {
+            saveScheduledNotification(context, notificationDetails);
+        }
     }
 
     static void zonedScheduleNextNotification(Context context, NotificationDetails notificationDetails) {
@@ -1013,7 +1031,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         Map<String, Object> arguments = call.arguments();
         NotificationDetails notificationDetails = extractNotificationDetails(result, arguments);
         if (notificationDetails != null) {
-            showNotification(applicationContext, notificationDetails);
+            showNotification(applicationContext, notificationDetails, true);
             result.success(null);
         }
     }
